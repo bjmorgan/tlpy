@@ -2,6 +2,9 @@ from tlpy.defect_charge_state import Defect_Charge_State
 
 import numpy as np
 
+def numpy_pprint( np_array ):
+    return "\n".join( [ ' '.join( [ '{}'.format( f ) for f in p ] ) for p in np_array ] )
+
 class Defect:
     """A specific defect corresponding to a specified change in stoichiometry.
     
@@ -55,7 +58,7 @@ class Defect:
             ef_max (float):
 
         Returns:
-            points (List(tuple)):"""
+            points (np.array):"""
         charge_state = self.charge_state_at_fermi_energy( ef_min )
         points = [ ( ef_min, charge_state.formation_energy( ef_min, delta_mu ) ) ]
         q1 = charge_state.charge
@@ -67,7 +70,7 @@ class Defect:
             else:
                 break
         points.append( ( ef_max, self.charge_state[ q1 ].formation_energy( ef_max, delta_mu ) ) )
-        return points
+        return np.array( points )
 
     def defect_energy_at_fermi_energy( self, e_fermi, delta_mu ):
         return self.charge_state_at_fermi_energy( e_fermi ).formation_energy( e_fermi, delta_mu )
@@ -81,15 +84,44 @@ class Defect:
         a = q1
         b = q2
         x = ( d - c ) / ( a - b )
-        y = a * x + c
+        y = a * x + c 
         return ( x, y )
 
-    def xmgrace_output( self, delta_mu ):
+    def xmgrace_output( self, delta_mu, ef_min = 0.0, ef_max = None ):
+        """Returns a string representation of the transition level diagram for this defect,
+           appropriate for plotting in xmgrace using e.g. `xmgrace output.dat`
+
+        Args:
+            delta_mu (dict): elemental chemical potentials for calculating these transition levels, e.g. { 'O' : -0.345 }
+            ef_min (Optional(float)): minimum Fermi energy (relative to the host VBM). Defaults to 0.0 eV.
+            ef_max (Optional(float)): maximum Fermi energy (relative to the host VBM). Defaults to the host fundamental gap.
+
+        Returns:
+            str: e.g.
+                 # V_O
+                 0.0 -2.4
+                 1.3 0.8
+                 2.6 0.8
+        """
+        if not ef_max:
+            ef_max = self.host.fundamental_gap
+        points = self.tl_profile( delta_mu, ef_min, ef_max )
         ret = '# {}\n'.format( self.name )
-        points = self.tl_profile( delta_mu = delta_mu, ef_min = 0.0, ef_max = self.host.fundamental_gap )
-        ret += '\n'.join( [ '{} {}'.format( p[0], p[1] ) for p in points ] ) + '\n'
+        ret += numpy_pprint( points ) + '\n'
         return ret
 
-    def matplotlib_data( self, delta_mu, ef_min, ef_max ):
-        return np.array( self.tl_profile( delta_mu, ef_min, ef_max ) ).T
+    def matplotlib_data( self, delta_mu, ef_min = 0.0, ef_max = None):
+        """Returns the set of points for a transition level diagram transposed for direct matplotlib plotting.
+
+        Args:
+            delta_mu (dict): elemental chemical potentials for calculating these transition levels, e.g. { 'O' : -0.345 }
+            ef_min (Optional(float)): minimum Fermi energy (relative to the host VBM). Defaults to 0.0 eV.
+            ef_max (Optional(float)): maximum Fermi energy (relative to the host VBM). Defaults to the host fundamental gap.
+
+        Returns:
+            np.array
+        """
+        if not ef_max:
+            ef_max = self.host.fundamental_gap
+        return self.tl_profile( delta_mu, ef_min, ef_max ).T
 
