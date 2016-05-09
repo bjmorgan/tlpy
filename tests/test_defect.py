@@ -1,6 +1,8 @@
 import unittest
 import tlpy.defect
 import tlpy.host
+import numpy as np
+from unittest.mock import Mock
 
 class DefectTestCase( unittest.TestCase ):
     """Test for `defect.py`"""
@@ -50,6 +52,41 @@ class DefectTestCase( unittest.TestCase ):
     def test_charge_state_list( self ):
         """List of charge states returned"""
         self.assertEqual( self.defect.charge_state_list(), [ cs.charge for cs in self.charge_states ] )
+
+    def test_transition_level( self ):
+        """Calculate the transition level for two charge states"""
+        tl = self.defect.transition_level( 0, 2, delta_mu = { 'O' : 0 } )
+        self.assertAlmostEqual( tl[0], 1.474835153 )
+        self.assertAlmostEqual( tl[1], 4.185176480 )
+
+    def test_transition_level_missing_mu( self ):
+        """Raise KeyError if the correct chemical potential is missing in a transition level calculation"""
+        self.assertRaises( KeyError, self.defect.transition_level, 0, 2, { 'Ti' : 0 } )
+
+    def test_transition_level_profile( self ):
+        """Calculate the set of points that give the transition level plot for this defect"""
+        tl_profile = self.defect.tl_profile( { 'O' : 0 }, 0.0, 3.0 )
+        expected_profile = [ [ 0.0,         1.23550617],
+                             [ 1.47483515,  4.18517648],
+                             [ 3.0,         4.18517648] ]
+        self.assertTrue( np.allclose( tl_profile, expected_profile ) )
+
+    def test_xmgrace_output_generated_correctly( self ):
+        self.defect.name = 'name'
+        self.defect.tl_profile = Mock( return_value = np.array( [[1,2],[3,4],[5,6]] ) )
+        xmgrace_output = self.defect.xmgrace_output( delta_mu = { 'O' : 0 } )
+        self.assertEqual( xmgrace_output, "# name\n1 2\n3 4\n5 6\n" )
+
+    def test_xmgrace_calls_tl_profile_correctly( self ):
+        self.defect.tl_profile = Mock( return_value = np.array( [[1,2],[3,4],[5,6]] ) )
+        self.defect.host.fundamental_gap = 1.0
+        self.defect.xmgrace_output( delta_mu = { 'O' : 0 } )
+        self.defect.tl_profile.assert_called_with( { 'O' : 0 }, 0.0, 1.0 )
+
+    def test_xmgrace_calls_tl_profile_correctly_with_optional_arguments( self ):
+        self.defect.tl_profile = Mock( return_value = np.array( [[1,2],[3,4],[5,6]] ) )
+        self.defect.xmgrace_output( delta_mu = { 'O' : 0 }, ef_min = 0.5, ef_max = 1.5 )
+        self.defect.tl_profile.assert_called_with( { 'O' : 0 }, 0.5, 1.5 )
 
 if __name__ == '__main__':
     unittest.main()
