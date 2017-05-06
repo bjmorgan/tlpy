@@ -11,3 +11,15 @@ engines:
           content: 
           path_patterns:
             - "tlpy/*.py"
+  duplication:
+    enabled: true
+    config:
+      languages:
+        python:	
+          python_version: 3
+  radon: 
+    enabled: true
+
+ratings:
+  paths:
+    - "**.py"
