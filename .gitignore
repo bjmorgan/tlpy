@@ -3,3 +3,4 @@ tlpy/__pycache__/*
 tests/__pycache__/*
 build
 *.swp
+*coverage
