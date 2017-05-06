@@ -1,7 +1,13 @@
 engines:
-  pep8:
+  grep:
     enabled: true
-
-ratings:
-   paths:
-   - "**.py"
+    config:
+      patterns:
+        missing docstring:
+          pattern: def[^\n:]+\):\n\s+[^"' ]
+          annotation: "Missing docstring"
+          severity: minor
+          categories: Clarity
+          content: 
+          path_patterns:
+            - "tlpy/*.py"
