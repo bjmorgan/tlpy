@@ -1,1 +1,3 @@
 numpy
+coverage
+codeclimate-test-reporter
